@@ -1,0 +1,27 @@
+{
+    "name": "xemplate",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "dev": "nodemon",
+        "build": "rimraf ./build && tsc",
+        "start": "npm run build && node build/index.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/node": "^14.0.13",
+        "@types/yargs": "^15.0.5",
+        "nodemon": "^2.0.4",
+        "rimraf": "^3.0.2",
+        "ts-node": "^8.10.2",
+        "typescript": "^3.9.5"
+    },
+    "dependencies": {
+        "html-parse-stringify2": "^2.0.1",
+        "pretty": "^2.0.0",
+        "yargs": "^15.3.1"
+    }
+}
