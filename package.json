@@ -2,14 +2,14 @@
     "name": "xemplate",
     "version": "1.0.0",
     "description": "",
-    "main": "dist/index.js",
+    "main": "build/index.js",
     "scripts": {
         "dev": "nodemon",
         "build": "rimraf ./build && tsc",
         "start": "npm run build && node build/index.js"
     },
     "bin": {
-        "xem": "dist/index.js"
+        "xem": "build/index.js"
     },
     "keywords": [],
     "author": "",
