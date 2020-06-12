@@ -12,8 +12,9 @@
         "xem": "build/index.js"
     },
     "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "homepage": "https://github.com/ImportProgram/xemplate",
+    "author": "ImportProgram",
+    "license": "MIT",
     "devDependencies": {
         "@types/node": "^14.0.13",
         "@types/yargs": "^15.0.5",
