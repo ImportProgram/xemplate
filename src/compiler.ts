@@ -1,5 +1,6 @@
 import fs from "fs";
 import fse from "fs-extra";
+import chalk from "chalk";
 import HTML from "html-parse-stringify2";
 import cloneDeep from "lodash/cloneDeep";
 import { FSWatcher } from "chokidar";
@@ -24,6 +25,9 @@ interface IFiles {
 interface ICompiler {
     setBuildDirectory: Function;
     addPlugin: Function;
+    loadEnd: Function;
+    loadStart: Function;
+    buildEnd: Function;
 }
 interface IXemPlugin {
     onIndex: Function;
@@ -34,7 +38,11 @@ interface IXemPlugin {
     onFilter: Function;
     onChange: Function;
     onSave: Function;
+    onLoadStart: Function;
+    onLoadEnd: Function;
 }
+
+let mode = "DEVELOPMENT";
 
 let buildFolder: string = "./dist";
 
@@ -43,6 +51,8 @@ let astIdentifier: Map<string, string> = new Map();
 let astType: Map<string, string> = new Map();
 
 let plugins: Array<IXemPlugin> = [];
+
+let startTime;
 
 const watcher = new FSWatcher({
     persistent: true,
@@ -56,14 +66,22 @@ const readFile = (fileName: any) => {
  * @param file Path of a file
  */
 const parseAST = (file: string, id: string, type: string) => {
-    file = file.replace(/\//g, "\\");
-    watcher.add(file);
-    const content: string = readFile(file);
-    const data: string = HTML.parse(content);
-    astFiles.set(file, data);
-    astIdentifier.set(file, id);
-    astType.set(file, type);
-    indexFile(file);
+    startTime = process.hrtime();
+    if (fs.existsSync(file)) {
+        file = file.replace(/\//g, "\\");
+        watcher.add(file);
+
+        const content: string = readFile(file);
+        const data: string = HTML.parse(content);
+        astFiles.set(file, data);
+        astIdentifier.set(file, id);
+        astType.set(file, type);
+        indexFile(file);
+    } else {
+        console.log(
+            chalk`{cyan [Xemplate]} {red Invalid file: } {green ${file}}`
+        );
+    }
 };
 const getAST = (file: string) => {
     return astFiles.get(file);
@@ -208,6 +226,19 @@ const buildFile = (file: string) => {
             buildFolder + "/" + path.basename(file),
             result,
             function (err) {
+                let hrend = process.hrtime(startTime);
+                if (hrend[0] > 0) {
+                    console.log(
+                        chalk`{cyan [Xemplate]} {blue Compiled in} {green ${hrend[0]}s}`
+                    );
+                } else {
+                    console.log(
+                        chalk`{cyan [Xemplate]} {blue Compiled in} {green ${
+                            hrend[1] / 1000000
+                        }ms}`
+                    );
+                }
+
                 plugins.forEach((plugin) => {
                     if (plugin.onSave != undefined)
                         plugin.onSave(file, result, err);
@@ -237,6 +268,7 @@ const initFile = (file: string) => {
 watcher.on("change", (path) => {
     //Make sure said AST file has already been added (so we can use caching)
     if (astFiles.has(path)) {
+        console.clear();
         //Get the type of the abstract tree
         let type: any = astType.get(path);
         let id: any = astIdentifier.get(path);
@@ -276,6 +308,22 @@ const Compile: ICompiler = {
     },
     addPlugin: (plugin: IXemPlugin) => {
         plugins.push(plugin);
+    },
+    loadStart: () => {
+        plugins.forEach((plugin) => {
+            if (plugin.onLoadStart != undefined) plugin.onLoadStart(mode);
+        });
+    },
+    loadEnd: () => {
+        plugins.forEach((plugin) => {
+            if (plugin.onLoadEnd != undefined) plugin.onLoadEnd(mode);
+        });
+    },
+    buildEnd: () => {
+        console.log(
+            chalk`{cyan [Xemplate]} {blue Build output located in} {green ${buildFolder}}`
+        );
+        watcher.close();
     },
 };
 

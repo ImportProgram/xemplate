@@ -7,43 +7,54 @@ import Component from "./plugins/Component";
 import Imports from "./plugins/Imports";
 import HMR from "./plugins/HMR";
 
-let indexFiles = (files: any) => {
-    return new Promise((resolve) => {
-        files.forEach(async (file: String) => {
-            await Files.add(file, file);
-            resolve();
-        });
-    });
-};
-
 const runDevelopment = async (files: Array<String>) => {
-    console.time("queryTime");
     Compiler.addPlugin(Component);
     Compiler.addPlugin(Imports);
     Compiler.addPlugin(HMR);
+    Compiler.loadStart();
     files.forEach((file: String) => {
         Files.add(file, file, "HTML");
     });
     files.forEach((file: String) => {
         Files.init(file.replace(/\//g, "\\"));
         Files.build(file.replace(/\//g, "\\"));
-        console.timeEnd("queryTime");
     });
+    Compiler.loadEnd();
 };
+
+const runBuild = async (files: Array<String>) => {
+    Compiler.addPlugin(Component);
+    Compiler.addPlugin(Imports);
+    Compiler.loadStart();
+    files.forEach((file: String) => {
+        Files.add(file, file, "HTML");
+    });
+    files.forEach((file: String) => {
+        Files.init(file.replace(/\//g, "\\"));
+        Files.build(file.replace(/\//g, "\\"));
+    });
+    Compiler.loadEnd();
+    Compiler.buildEnd();
+};
+
 const main = async () => {
     let args = yargs
         .command(
             "dev",
             chalk`{blue Start development server for a} {cyan Xemplate}`
         )
-        .command("build", chalk`{blue Build a} {cyan Xemplate}`).argv;
+        .command("build", chalk`{blue Build a} {cyan Xemplate}`)
+        .showHelpOnFail(true)
+        .demandCommand(1, "").argv;
     switch (args._[0]) {
         case "dev":
             args._.shift();
             runDevelopment(args._);
             break;
         case "build":
+            args._.shift();
+            runBuild(args._);
             break;
     }
 };
-runDevelopment(["example/basic/example.html"]);
+main();
