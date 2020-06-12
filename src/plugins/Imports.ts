@@ -20,6 +20,8 @@ interface IXemPlugin {
     onBuild?: Function;
     onFilter?: Function;
     onChange?: Function;
+    onSave?: Function;
+    onLoad?: Function;
 }
 
 let importCache = {};
@@ -45,9 +47,6 @@ const updateHTML = (importFile) => {
 };
 
 const Imports: IXemPlugin = {
-    onIndexStart: (file, type) => {
-        //delete importCache[file];
-    },
     onIndex: async (file, type, tag, parseAST) => {
         if (tag.type == "tag") {
             if (tag.name == "import") {
@@ -67,11 +66,6 @@ const Imports: IXemPlugin = {
             }
         }
     },
-    onIndexEnd: (file) => {},
-    onInit: (file, getAST, filterAST, buildAST) => {},
-    onBuild: (tag) => {
-        return tag;
-    },
     onFilter: (tag, level) => {
         if (level == 0) {
             if (tag.type === "tag") {
@@ -86,7 +80,6 @@ const Imports: IXemPlugin = {
         if (type == "IMPORT") {
             parseAST(path, as, type);
             let rebuilds = updateHTML(path);
-
             rebuilds.map((file) => {
                 buildFile(file);
             });

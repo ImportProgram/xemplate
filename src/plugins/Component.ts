@@ -19,10 +19,11 @@ interface IXemPlugin {
     onBuild?: Function;
     onFilter?: Function;
     onChange?: Function;
+    onSave?: Function;
+    onLoad?: Function;
 }
 
 const components = {};
-
 const componentsAlias = {};
 
 const addComponent = (file: string, id: string, ast: IXemTagNode) => {
@@ -46,10 +47,13 @@ const parseComponent = (
     buildAST
 ): any => {
     let component = cloneDeep(components[file][id]);
+    let componentJSON = JSON.stringify(component);
     for (let i in tagNode.attrs) {
         let value = tagNode.attrs[i];
-        component = deepReplaceInObject(`@${i}`, value, component);
+        var re = new RegExp("@" + i, "g");
+        componentJSON = componentJSON.replace(re, value);
     }
+    component = JSON.parse(componentJSON);
     let findValues = (tags) => {
         return tags.map((tag) => {
             if (tag.type == "tag") {
@@ -64,22 +68,17 @@ const parseComponent = (
                         }
                     }
                     tag.children = findValues(tag.children);
-                } else {
-                    console.log("Wont update children");
                 }
             }
             return tag;
         });
     };
 
-    //@ts-ignore
     component.children = findValues(component.children);
     component = buildAST([component], file);
-    //@ts-ignore
     return component[0].children;
 };
 const Component: IXemPlugin = {
-    onIndexStart: () => {},
     onIndex: (file: string, id: string, tag: IXemTagNode) => {
         if (tag.type == "tag") {
             if (tag.name == "template") {

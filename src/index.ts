@@ -5,6 +5,7 @@ import Compiler, { Files } from "./compiler";
 
 import Component from "./plugins/Component";
 import Imports from "./plugins/Imports";
+import HMR from "./plugins/HMR";
 
 let indexFiles = (files: any) => {
     return new Promise((resolve) => {
@@ -19,6 +20,7 @@ const runDevelopment = async (files: Array<String>) => {
     console.time("queryTime");
     Compiler.addPlugin(Component);
     Compiler.addPlugin(Imports);
+    Compiler.addPlugin(HMR);
     files.forEach((file: String) => {
         Files.add(file, file, "HTML");
     });
@@ -44,4 +46,4 @@ const main = async () => {
             break;
     }
 };
-runDevelopment(["example/imports/1.html"]);
+runDevelopment(["example/basic/example.html"]);
