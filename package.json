@@ -9,7 +9,7 @@
         "start": "npm run build && node build/index.js"
     },
     "bin": {
-        "xem": "node build/index.js"
+        "xem": "build/index.js"
     },
     "keywords": [],
     "author": "",
