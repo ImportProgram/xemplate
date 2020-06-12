@@ -1,3 +1,6 @@
+import deepReplaceInObject from "deep-replace-in-object";
+import path from "path";
+import cloneDeep from "lodash/cloneDeep";
 interface IAttr {
     [id: string]: string;
 }
@@ -9,35 +12,92 @@ interface IXemTagNode {
     children: Array<IXemTagNode>;
 }
 interface IXemPlugin {
+    onIndexStart?: Function;
+    onIndexEnd?: Function;
     onIndex?: Function;
+    onInit?: Function;
     onBuild?: Function;
     onFilter?: Function;
+    onChange?: Function;
 }
 
-const components: Map<string, Object> = new Map();
+const components = {};
 
-const addComponent = (id: string, ast: Object) => {
-    components.set(id, ast);
+const componentsAlias = {};
+
+const addComponent = (file: string, id: string, ast: IXemTagNode) => {
+    if (components[file] == undefined) {
+        components[file] = {};
+    }
+    components[file][id] = ast;
 };
-const parseComponent = (id: string, tag: IXemTagNode): any => {
-    let component = components.get(id);
+
+const setComponentAlias = (file, src, as) => {
+    if (componentsAlias[file] == undefined) {
+        componentsAlias[file] = {};
+    }
+    componentsAlias[file][as] = src;
+};
+
+const parseComponent = (
+    file: string,
+    id: string,
+    tagNode: IXemTagNode,
+    buildAST
+): any => {
+    let component = cloneDeep(components[file][id]);
+    for (let i in tagNode.attrs) {
+        let value = tagNode.attrs[i];
+        component = deepReplaceInObject(`@${i}`, value, component);
+    }
     let findValues = (tags) => {
-        tags.map(() => {});
+        return tags.map((tag) => {
+            if (tag.type == "tag") {
+                if (tag.children.length > 0) {
+                    for (let c in tag.children) {
+                        let child = tag.children[c];
+                        if (child.type == "text") {
+                            if (child.content.includes("$children")) {
+                                tag.children.splice(c, 1);
+                                tag.children.splice(c, 0, ...tagNode.children);
+                            }
+                        }
+                    }
+                    tag.children = findValues(tag.children);
+                } else {
+                    console.log("Wont update children");
+                }
+            }
+            return tag;
+        });
     };
-    findValues(tag.children);
-    return tag;
+
+    //@ts-ignore
+    component.children = findValues(component.children);
+    component = buildAST([component], file);
+    //@ts-ignore
+    return component[0].children;
 };
 const Component: IXemPlugin = {
-    onIndex: (file: string, tag: IXemTagNode) => {
+    onIndexStart: () => {},
+    onIndex: (file: string, id: string, tag: IXemTagNode) => {
         if (tag.type == "tag") {
             if (tag.name == "template") {
                 if (tag.attrs.id != undefined) {
-                    addComponent(tag.attrs.id, tag);
+                    addComponent(file, tag.attrs.id, tag);
+                }
+            } else if (tag.name == "import") {
+                if (tag.attrs.src != undefined) {
+                    if (tag.attrs.as != undefined) {
+                        let location: string =
+                            path.dirname(file) + "\\" + tag.attrs.src;
+                        setComponentAlias(file, location, tag.attrs.as);
+                    }
                 }
             }
         }
     },
-    onBuild: (tag, buildAST) => {
+    onBuild: (tag, buildAST, file) => {
         //Check if we have a tag
         if (tag.type == "tag") {
             //Now check if we have children for this tagh
@@ -51,12 +111,39 @@ const Component: IXemPlugin = {
                         //Check if this tag is "component" tag via a uppercase first character (like React)
                         if (child.name[0] == child.name[0].toUpperCase()) {
                             //When the component is done being parsed, add the new array to the existing nodes
-                            if (components.has(child.name)) {
-                                let component: IXemTagNode = parseComponent(
-                                    child.name,
-                                    child
-                                );
-                                nodes = nodes.concat(component);
+                            let imports = child.name.split("-");
+
+                            if (componentsAlias[file] != undefined) {
+                                if (
+                                    componentsAlias[file][imports[0]] !=
+                                        undefined &&
+                                    components[
+                                        componentsAlias[file][imports[0]]
+                                    ][imports[1]] != undefined
+                                ) {
+                                    let src = componentsAlias[file][imports[0]];
+                                    let component: IXemTagNode = parseComponent(
+                                        src,
+                                        imports[1],
+                                        child,
+                                        buildAST
+                                    );
+                                    nodes = nodes.concat(component);
+                                }
+                            } else if (components[file] != undefined) {
+                                if (
+                                    components[file].hasOwnProperty(child.name)
+                                ) {
+                                    let component: IXemTagNode = parseComponent(
+                                        file,
+                                        child.name,
+                                        child,
+                                        buildAST
+                                    );
+                                    nodes = nodes.concat(component);
+                                } else {
+                                    nodes.push(child);
+                                }
                             } else {
                                 nodes.push(child);
                             }
@@ -75,11 +162,12 @@ const Component: IXemPlugin = {
         }
         return tag;
     },
-
-    onFilter: (tag) => {
-        if (tag.type === "tag") {
-            if (tag.name == "template") {
-                return false;
+    onFilter: (tag, level) => {
+        if (level == 0) {
+            if (tag.type === "tag") {
+                if (tag.name == "template") {
+                    return false;
+                }
             }
         }
         return true;

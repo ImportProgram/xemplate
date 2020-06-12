@@ -4,22 +4,28 @@ import chalk from "chalk";
 import Compiler, { Files } from "./compiler";
 
 import Component from "./plugins/Component";
-import { resolve } from "dns";
+import Imports from "./plugins/Imports";
 
 let indexFiles = (files: any) => {
     return new Promise((resolve) => {
         files.forEach(async (file: String) => {
-            await Files.add(file);
+            await Files.add(file, file);
             resolve();
         });
     });
 };
 
 const runDevelopment = async (files: Array<String>) => {
+    console.time("queryTime");
     Compiler.addPlugin(Component);
-    await indexFiles(files);
+    Compiler.addPlugin(Imports);
     files.forEach((file: String) => {
-        Files.build(file);
+        Files.add(file, file, "HTML");
+    });
+    files.forEach((file: String) => {
+        Files.init(file.replace(/\//g, "\\"));
+        Files.build(file.replace(/\//g, "\\"));
+        console.timeEnd("queryTime");
     });
 };
 const main = async () => {
@@ -38,4 +44,4 @@ const main = async () => {
             break;
     }
 };
-runDevelopment(["example.html"]);
+runDevelopment(["example/imports/1.html"]);
