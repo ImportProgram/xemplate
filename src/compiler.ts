@@ -68,9 +68,7 @@ const readFile = (fileName: any) => {
 const parseAST = (file: string, id: string, type: string) => {
     startTime = process.hrtime();
     if (fs.existsSync(file)) {
-        file = file.replace(/\//g, "\\");
         watcher.add(file);
-
         const content: string = readFile(file);
         const data: string = HTML.parse(content);
         astFiles.set(file, data);
@@ -265,19 +263,20 @@ const initFile = (file: string) => {
  * - When a file is saved, the plugins will do there thing first, and if the type
  *   is html, the base compiler will attempt to transpile the syntax
  */
-watcher.on("change", (path) => {
+watcher.on("change", (file) => {
     //Make sure said AST file has already been added (so we can use caching)
-    if (astFiles.has(path)) {
+    file = path.normalize(file);
+    if (astFiles.has(file)) {
         console.clear();
         //Get the type of the abstract tree
-        let type: any = astType.get(path);
-        let id: any = astIdentifier.get(path);
-        const content: string = readFile(path);
+        let type: any = astType.get(file);
+        let id: any = astIdentifier.get(file);
+        const content: string = readFile(file);
         const ast: string = HTML.parse(content);
         plugins.forEach((plugin) => {
             if (plugin.onChange != undefined)
                 plugin.onChange(
-                    path,
+                    file,
                     id,
                     type,
                     ast,
@@ -288,8 +287,8 @@ watcher.on("change", (path) => {
         });
         //By default any HTML files will be re-parsed
         if (type == "HTML") {
-            parseAST(path, path, type);
-            buildFile(path);
+            parseAST(file, file, type);
+            buildFile(file);
         }
     }
 });

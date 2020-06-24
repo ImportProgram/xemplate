@@ -1,17 +1,6 @@
 import path from "path";
-import cloneDeep from "lodash/cloneDeep";
-import { Files } from "../compiler";
+import slash from "slash";
 
-interface IAttr {
-    [id: string]: string;
-}
-interface IXemTagNode {
-    type: string;
-    attrs: IAttr;
-    name: string;
-    content?: string;
-    children: Array<IXemTagNode>;
-}
 interface IXemPlugin {
     onIndexStart?: Function;
     onIndexEnd?: Function;
@@ -51,8 +40,9 @@ const Imports: IXemPlugin = {
         if (tag.type == "tag") {
             if (tag.name == "import") {
                 if (tag.attrs.src != undefined) {
-                    let location: string =
-                        path.dirname(file) + "\\" + tag.attrs.src;
+                    let location: string = path.normalize(
+                        path.dirname(file) + "/" + slash(tag.attrs.src)
+                    );
                     let as = "";
                     if (importCache[location] == undefined) {
                         importCache[location] = {};

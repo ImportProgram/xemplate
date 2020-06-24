@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+import path from "path";
 import yargs from "yargs";
 import chalk from "chalk";
+import slash from "slash";
 
 import Compiler, { Files } from "./compiler";
 
@@ -13,12 +15,14 @@ const runDevelopment = async (files: Array<String>) => {
     Compiler.addPlugin(Imports);
     Compiler.addPlugin(HMR);
     Compiler.loadStart();
-    files.forEach((file: String) => {
+    files.forEach((file: any) => {
+        file = path.normalize(slash(file));
         Files.add(file, file, "HTML");
     });
-    files.forEach((file: String) => {
-        Files.init(file.replace(/\//g, "\\"));
-        Files.build(file.replace(/\//g, "\\"));
+    files.forEach((file: any) => {
+        file = path.normalize(slash(file));
+        Files.init(file);
+        Files.build(file);
     });
     Compiler.loadEnd();
 };
@@ -27,12 +31,14 @@ const runBuild = async (files: Array<String>) => {
     Compiler.addPlugin(Component);
     Compiler.addPlugin(Imports);
     Compiler.loadStart();
-    files.forEach((file: String) => {
+    files.forEach((file: any) => {
+        file = path.normalize(slash(file));
         Files.add(file, file, "HTML");
     });
-    files.forEach((file: String) => {
-        Files.init(file.replace(/\//g, "\\"));
-        Files.build(file.replace(/\//g, "\\"));
+    files.forEach((file: any) => {
+        file = path.normalize(slash(file));
+        Files.init(file);
+        Files.build(file);
     });
     Compiler.loadEnd();
     Compiler.buildEnd();
@@ -58,4 +64,7 @@ const main = async () => {
             break;
     }
 };
+
+//runDevelopment(["example/imports/base.html"]);
+//runDevelopment(["example/tailwind/tailwind.html"]);
 main();

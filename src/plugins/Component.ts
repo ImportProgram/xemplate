@@ -1,4 +1,5 @@
 import path from "path";
+import slash from "slash";
 import cloneDeep from "lodash/cloneDeep";
 interface IAttr {
     [id: string]: string;
@@ -87,8 +88,9 @@ const Component: IXemPlugin = {
             } else if (tag.name == "import") {
                 if (tag.attrs.src != undefined) {
                     if (tag.attrs.as != undefined) {
-                        let location: string =
-                            path.dirname(file) + "\\" + tag.attrs.src;
+                        let location: string = path.normalize(
+                            path.dirname(file) + "/" + slash(tag.attrs.src)
+                        );
                         setComponentAlias(file, location, tag.attrs.as);
                     }
                 }
@@ -110,7 +112,6 @@ const Component: IXemPlugin = {
                         if (child.name[0] == child.name[0].toUpperCase()) {
                             //When the component is done being parsed, add the new array to the existing nodes
                             let imports = child.name.split("-");
-
                             if (componentsAlias[file] != undefined) {
                                 if (
                                     componentsAlias[file][imports[0]] !=
